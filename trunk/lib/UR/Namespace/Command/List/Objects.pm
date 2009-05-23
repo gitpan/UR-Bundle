@@ -11,5 +11,5 @@ class UR::Namespace::Command::List::Objects {
 
 1;
 
-#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.01/trunk/lib/UR/Namespace/Command/List/Objects.pm $
-#$Id: Objects.pm 47145 2009-05-22 03:36:57Z ssmith $
+#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.02/trunk/lib/UR/Namespace/Command/List/Objects.pm $
+#$Id: Objects.pm 36327 2008-07-08 20:59:29Z ebelter $
