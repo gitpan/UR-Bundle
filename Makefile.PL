@@ -9,6 +9,7 @@ all_from 'lib/UR.pm';
 perl_version '5.008';
 
 # prereqs
+requires 'version'              => '0.74';
 requires 'Class::Autouse'       => '1.99_02';
 requires 'Carp';
 requires 'Sys::Hostname'        => '1.11';
@@ -22,7 +23,7 @@ requires 'Data::Compare'        => '0.13';
 requires 'Text::Diff'           => '0.35';
 requires 'DBI'                  => '1.601';
 requires 'DBD::SQLite'          => '1.14';
-requires 'Moose'                => '0.31';
+#requires 'Moose'                => '0.31';
 
 # things the tests need
 build_requires 'Test::More' => '0.62';

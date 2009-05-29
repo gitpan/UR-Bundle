@@ -1,5 +1,11 @@
 Revision history for UR
 
+0.3     2009-05-29
+        Fixed memory leak in cache pruner, and added additional debugging environment variable.
+        Additional laziness on file-based data-sources.
+        Updated lots of POD.
+        Switched to version numbers without zero padding!
+
 0.02    2009-05-23
         Cleanup of initial deployment issues.
         UR uses a non-default version of Class::Autouse.  This is now a special file to prevent problems with the old version.

@@ -202,15 +202,11 @@ sub _do
 
 =pod
 
-=head1 Name
+=head1 NAME
 
-UR::Object::Command::FetchAndDo
+UR::Object::Command::FetchAndDo - Base class for fetching objects and then performing a function on/with them.
 
-=head1 Synopsis
-
-Base class for fetching objects and then performing a function on/with them.
-
-=head1 Usage
+=head1 SYNOPSIS
 
  package MyFecthAndDo;
 
@@ -286,5 +282,5 @@ Overwrite the help_brief, help_synopsis and help_detail methods to provide speci
 
 =cut
 
-#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.02/lib/UR/Object/Command/FetchAndDo.pm $
-#$Id: FetchAndDo.pm 47199 2009-05-23 17:21:09Z ssmith $#
+#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.3/lib/UR/Object/Command/FetchAndDo.pm $
+#$Id: FetchAndDo.pm 47381 2009-05-29 21:04:40Z ssmith $#

@@ -29,6 +29,9 @@ sub unload {
         }
 
         $self->signal_change('unload');
+        if ($ENV{'UR_DEBUG_OBJECT_RELEASE'}) {
+            print STDERR "MEM UNLOAD object $self class ",$self->class," id ",$self->id,"\n";
+        }
         $self->delete_object;
         return $self;
     }

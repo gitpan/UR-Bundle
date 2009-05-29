@@ -356,15 +356,11 @@ sub tab2col{
 1;
 =pod
 
-=head1 Name
+=head1 NAME
 
-UR::Object::Command::List
+UR::Object::Command::List - Fetches and lists objects in different styles.
 
-=head1 Synopsis
-
-Fetches and lists objects in different styles.
-
-=head1 Usage
+=head1 SYNOPSIS
 
  package MyLister;
 
@@ -434,5 +430,5 @@ text, csv, html, pretty (inprogress)
 =cut
 
 
-#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.02/lib/UR/Object/Command/List.pm $
-#$Id: List.pm 47199 2009-05-23 17:21:09Z ssmith $
+#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.3/lib/UR/Object/Command/List.pm $
+#$Id: List.pm 47381 2009-05-29 21:04:40Z ssmith $
