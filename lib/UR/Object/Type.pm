@@ -44,8 +44,8 @@ use Scalar::Util qw(blessed);
 require UR;
 
 our @ISA = qw(UR::Object);
-our $VERSION = '2.1';
-
+our $VERSION = $UR::VERSION;;
+sub define { shift->__define__(@_) }
 # This module implements define(), and most everything behind it.
 use UR::Object::Type::Initializer;
 
@@ -61,6 +61,7 @@ our %meta_classes;
 our $bootstrapping = 1;
 our @partially_defined_classes;
 our $pwd_at_compile_time = cwd();
+
 
 # Some accessor methods drawn from properties need to be overridden.
 # Some times because they need to operate during bootstrapping.  Sometimes
@@ -90,8 +91,8 @@ sub data_source {
         or $caller eq 'UR::Object::Type::resolve_class_description_perl'
         or $caller eq 'UR::Namespace::Command::Update::Classes::_update_class_metadata_objects_to_match_database_metadata_changes'
     ) {
-        Carp::cluck("Attempt to access the data_source property of a class in $caller. "
-            . "Calls should instead go to the current context:")
+        #Carp::cluck("Attempt to access the data_source property of a class in $caller. "
+        #    . "Calls should instead go to the current context:")
     }
     #return $ds;
     return undef unless $ds;
@@ -100,7 +101,7 @@ sub data_source {
 }
 
 sub ancestry_class_metas {
-    #my $rule_template = UR::BoolExpr::Template->resolve_for_class_and_params(__PACKAGE__,'id');
+    #my $rule_template = UR::BoolExpr::Template->resolve(__PACKAGE__,'id');
 
     # Can't use the speed optimization of getting a template here.  Using the Context to get 
     # objects here causes endless recursion during bootstrapping
@@ -115,7 +116,7 @@ sub property_meta_for_name {
     my ($self, $property_name) = @_;
     my $property;
 
-    my $rule_template = UR::BoolExpr::Template->resolve_for_class_and_params('UR::Object::Property', 'class_name', 'property_name');
+    my $rule_template = UR::BoolExpr::Template->resolve('UR::Object::Property', 'class_name', 'property_name');
 
     for my $class ($self->class_name, $self->ancestry_class_names) {
         #$property = UR::Object::Property->get(class_name => $class, property_name => $property_name);
@@ -143,11 +144,11 @@ sub direct_id_token_metas
 sub direct_id_property_metas
 {
     my $self = _object(shift);
-    my $get_rule_template = UR::BoolExpr::Template->resolve_for_class_and_params('UR::Object::Property', 'class_name', 'attribute_name');
+    my $template = UR::BoolExpr::Template->resolve('UR::Object::Property', 'class_name', 'attribute_name');
     my @id_property_objects =
         #map { UR::Object::Property->get(class_name => $_->class_name, attribute_name => $_->attribute_name) }
         map { $UR::Context::current->get_objects_for_class_and_rule('UR::Object::Property', $_) }
-        map { $get_rule_template->get_rule_for_values($_->class_name, $_->attribute_name) }
+        map { $template->get_rule_for_values($_->class_name, $_->attribute_name) }
         $self->direct_id_token_metas;
     if (@id_property_objects == 0) {
         @id_property_objects = $self->property_meta_for_name("id");
@@ -166,7 +167,7 @@ sub parent_class_names {
 sub id_property_names {    
     my $self = _object(shift);
     my @id_by;
-    #my $template = UR::BoolExpr::Template->resolve_for_class_and_params('UR::Object::Type', 'class_name');
+    #my $template = UR::BoolExpr::Template->resolve('UR::Object::Type', 'class_name');
 
     unless ($self->{id_by} and @id_by = @{ $self->{id_by} }) {
         foreach my $parent ( @{ $self->{'is'} } ) {
@@ -295,7 +296,7 @@ sub _resolve_meta_class_name_for_class_name {
 
 sub _resolve_meta_class_name {
     my $class = shift;
-    my ($rule,%extra) = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, @_);
+    my ($rule,%extra) = UR::BoolExpr->resolve_normalized($class, @_);
     my %params = $rule->params_list;
     my $class_name = $params{class_name};
     return unless $class_name;
@@ -1124,7 +1125,7 @@ sub all_property_type_names {
         return @{ $self->{_all_property_type_names} };
     }
     
-    #my $rule_template = UR::BoolExpr::Template->resolve_for_class_and_params('UR::Object::Type', 'id');
+    #my $rule_template = UR::BoolExpr::Template->resolve('UR::Object::Type', 'id');
 
     my $all_property_type_names = $self->{_all_property_type_names} = [];
     for my $class_name ($self->class_name, $self->ancestry_class_names) {
@@ -1253,13 +1254,13 @@ sub unique_property_sets
 
 # Args are:
 # 1) An UR::Object::Property object with attribute_name, class_name, id, property_name, type_name
-# 2) The method called: create_object, load, 
+# 2) The method called: _create_object, load, 
 # 3) An id?
 sub _property_change_callback {
     my $property_obj = shift;
     my $method = shift;
 
-    return if ($method eq 'load' || $method eq 'unload' || $method eq 'create_object' || $method eq 'delete_object');
+    return if ($method eq 'load' || $method eq 'unload' || $method eq '_create_object' || $method eq '_delete_object');
 
     my $class_obj = UR::Object::Type->get(class_name => $property_obj->class_name);
     my $property_name = $property_obj->property_name;
@@ -1302,7 +1303,7 @@ sub _id_property_change_callback {
     my $property_obj = shift;
     my $method = shift;
 
-    return if ($method eq 'load' || $method eq 'unload' || $method eq 'create_object' || $method eq 'delete_object');
+    return if ($method eq 'load' || $method eq 'unload' || $method eq '_create_object' || $method eq '_delete_object');
 
     my $class = UR::Object::Type->get(class_name => $property_obj->class_name);
     
@@ -1340,7 +1341,7 @@ sub _unique_property_change_callback {
     my $unique_obj = shift;
     my $method = shift;
 
-    return if ($method eq 'load' || $method eq 'unload' || $method eq 'create_object' || $method eq 'delete_object');
+    return if ($method eq 'load' || $method eq 'unload' || $method eq '_create_object' || $method eq '_delete_object');
 
     my $class = UR::Object::Type->get(class_name => $unique_obj->class_name);
     my $property_name = $unique_obj->property_name;
@@ -1382,13 +1383,13 @@ sub _unique_property_change_callback {
 
 # Args here are:  
 # 1) an UR::Object::Inheritance object with class_name, id, parent_class_name, type_name, parent_type_name
-# 2) method called to fire this off:  create_object, load, 
+# 2) method called to fire this off:  _create_object, load, 
 # 3) Some kind of id property's value?
 sub _inheritance_change_callback {
     my $inh_obj = shift;
     my $method = shift;
 
-    return if ($method eq 'load' || $method eq 'unload' || $method eq 'create_object' || $method eq 'delete_object');
+    return if ($method eq 'load' || $method eq 'unload' || $method eq '_create_object' || $method eq '_delete_object');
 
     my $class = UR::Object::Type->get(class_name => $inh_obj->class_name);
     # The inheritance_priority is 1-based, while the list in the class object is 0-based,
@@ -1448,9 +1449,9 @@ sub get_with_special_parameters
     return $class->SUPER::get_with_special_parameters($rule,@_);
 }
 
-sub signal_change {
+sub __signal_change__ {
     my $self = shift;
-    my @rv = $self->SUPER::signal_change(@_);
+    my @rv = $self->SUPER::__signal_change__(@_);
     if ($_[0] eq "delete") {
         my $class_name = $self->{class_name};
         $self->ungenerate();
@@ -1505,7 +1506,7 @@ sub ungenerate {
 #        # Changed things with no data source can just be thrown away, right?
 #        if ($ds) {
 #            foreach (@objs) {
-#                if ($_->changed) {
+#                if ($_->__changes__) {
 #                    die "Can't unload class object for $class_name, object instance with id ".$_->id." is changed";
 #                }
 #            }

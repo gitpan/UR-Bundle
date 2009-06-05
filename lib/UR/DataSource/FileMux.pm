@@ -78,7 +78,7 @@ sub create_iterator_closure_for_rule {
             $self->sql_fh->print("    FILEMux: $param_name: (",join(',',@values),")\n");
         }
 
-        unless ($rule->specifies_value_for_property_name($param_name)) {
+        unless ($rule->specifies_value_for($param_name)) {
             if (scalar(@values) == 1) {
                 $rule = $rule->add_filter($param_name => $values[0]);
             } else {
@@ -153,9 +153,9 @@ sub create_iterator_closure_for_rule {
                                 . join(',',@$file_resolver_params);
                 }
                 my $this_ds_obj  = $self->get_or_create_data_source($concrete_ds_type, $sub_ds_id, $resolved_file);
-                my $this_ds_rule = UR::BoolExpr->resolve_for_class_and_params($subject_class_name,%$this_ds_rule_params);
+                my $this_ds_rule = UR::BoolExpr->resolve($subject_class_name,%$this_ds_rule_params);
 
-                @constant_values = map { $this_ds_rule->specified_value_for_property_name($_) }
+                @constant_values = map { $this_ds_rule->value_for($_) }
                                        @constant_value_properties;
 
                 $ds_iterator = $this_ds_obj->create_iterator_closure_for_rule($this_ds_rule);
@@ -204,7 +204,7 @@ sub get_or_create_data_source {
 
         # Since these $sub_ds objects have no data_source, this will indicate to
         # UR::Context::prune_object_cache() that it's ok to go ahead and drop them
-        $sub_ds->weaken();
+        $sub_ds->__weaken__();
     }
     return $sub_ds;
 }
@@ -501,7 +501,7 @@ sub _sync_database {
 
             # Since these $sub_ds objects have no data_source, this will indicate to
             # UR::Context::prune_object_cache() that it's ok to go ahead and drop them
-            $sub_ds->weaken();
+            $sub_ds->__weaken__();
         }
         unless ($sub_ds) {
             die "Can't get data source with ID $sub_ds_id";

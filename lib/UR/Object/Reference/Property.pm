@@ -28,6 +28,8 @@ sub reference_id {
 
 
 # We're overriding get() so these objects can get created on the fly
+# This should never be done in normal classes.
+# Really, this should have its own data source.
 sub get {
     my $class = shift;
 
@@ -112,7 +114,7 @@ sub get {
                      );
             my $rp = $class->SUPER::get(%get_define_params) 
                       ||
-                     UR::Object::Reference::Property->define(%get_define_params);
+                     UR::Object::Reference::Property->__define__(%get_define_params);
 
             unless ($rp) {
                 $DB::single=1;
@@ -137,11 +139,11 @@ sub get {
     } # end foreach @refs
 
     # We may have created more than was actually asked for
-    my $rule = UR::BoolExpr->resolve_for_class_and_params($class,%params);
+    my $rule = UR::BoolExpr->resolve($class,%params);
     $class->context_return(grep { $rule->evaluate($_) } @defined_objects);
 }
 
-sub create_object
+sub _create_object
 {
     my $class = shift;
     my %params = @_;
@@ -165,7 +167,7 @@ sub create_object
         $r_attribute_name =~ s/_/ /g;
         $params{r_attribute_name} = $r_attribute_name;
     }
-    return $class->SUPER::create_object(%params);
+    return $class->SUPER::_create_object(%params);
 }
 
 sub get_with_special_parameters 

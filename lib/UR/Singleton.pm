@@ -56,7 +56,7 @@ sub _init_subclass {
 sub _abstract_load {
     my $class = shift;
     my $bx = $class->define_boolexpr(@_);
-    my $id = $bx->specified_value_for_id;
+    my $id = $bx->value_for_id;
     unless (defined $id) {
         use Data::Dumper;
         my $params = { $bx->params_list };
@@ -110,9 +110,9 @@ sub _concrete_load {
         }
    
 
-        $$varref = $class->create_object(%default_values, id => $id);    
+        $$varref = $class->_create_object(%default_values, id => $id);    
         $$varref->{db_committed} = { %$$varref };
-        $$varref->signal_change("load");
+        $$varref->__signal_change__("load");
         Scalar::Util::weaken($$varref);
     }
     my $self = $class->_concrete_is_loaded(@_);
@@ -130,14 +130,14 @@ sub init {
 }
 
 # All singletons require special deletion logic since they keep a 
-# weakened reference to the singleton.
+#weakened reference to the singleton.
 
-sub delete_object {
+sub _delete_object {
     my $self = shift;
     my $class = $self->class;
     no strict 'refs';
     ${ $class . "::singleton" } = undef if ${ $class . "::singleton" } eq $self;
-    $self->SUPER::delete_object(@_);
+    $self->SUPER::_delete_object(@_);
 }
 
 # In most cases, the id is the class name itself, but this is not necessary.
@@ -157,7 +157,7 @@ sub _resolve_id_for_subclass_name {
 sub create {
     my $class = shift;
     my $bx = $class->define_boolexpr(@_);
-    my $id = $bx->specified_value_for_id;
+    my $id = $bx->value_for_id;
     unless (defined $id) {
         use Data::Dumper;
         my $params = { $bx->params_list };

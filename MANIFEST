@@ -30,13 +30,6 @@ lib/UR/Env/UR_DBI_DUMP_STACK_ON_CONNECT.pm
 lib/UR/Env/UR_TEST_QUIET.pm
 lib/UR/Env/UR_DBI_MONITOR_DML.pm
 lib/UR/Env/UR_DEBUG_OBJECT_RELEASE.pm
-lib/UR/DBIx/ContextualFetch.pm
-lib/UR/Meta/Method.pm
-lib/UR/Meta/README_UNUSED_EXPERIMENTAL
-lib/UR/Meta/Class.pm
-lib/UR/Meta/Instance.pm
-lib/UR/Meta/Attribute.pm
-lib/UR/ObjectV001.pm
 lib/UR/Util.pm
 lib/UR/Value/FOF.pm
 lib/UR/Value/Blob.pm
@@ -144,7 +137,6 @@ lib/UR/Object.pod
 lib/UR/Context.pm
 lib/UR/DeletedRef.pm
 lib/UR/ModuleConfig.pm
-lib/UR/Command/Param.pm
 lib/UR/Context/DefaultRoot.pm
 lib/UR/Context/Process.pm
 lib/UR/Context/Root.pm
@@ -201,6 +193,7 @@ lib/UR/Namespace/Command/Test/Callcount/List.pm
 lib/UR/Namespace/Command/Test/Use.pm
 lib/UR/Namespace/Command/Test/Window.pm
 lib/UR/Namespace/Command/Test/Eval.pm
+lib/UR/Namespace/Command/Test/TrackObjectRelease.pm
 lib/UR/Namespace/Command/Test/Callcount.pm
 lib/UR/Namespace/Command/Define/Namespace.pm
 lib/UR/Namespace/Command/Define/Class.pm
@@ -236,14 +229,15 @@ lib/UR/Env.pod
 lib/UR/Singleton.pm
 lib/UR/Test.pm
 lib/UR/BoolExpr.pm
+lib/UR/ObjectV001removed.pm
 lib/UR/Time.pm
 lib/UR/Exit.pm
 lib/UR/Observer.pm
-lib/UR/Command.pod
 lib/UR/Change.pm
 lib/UR/Manual.pod
 lib/UR/Report.pm
 lib/UR/Vocabulary.pm
+lib/UR/ObjectV04removed.pm
 lib/UR/DBI.pm
 lib/Class/Autouse_1_99_02.pm
 lib/Class/Autouse_README

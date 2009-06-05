@@ -83,7 +83,7 @@ These methods create and change message handlers.
 require 5.6.0;
 use warnings;
 use strict;
-our $VERSION = '0.6';
+our $VERSION = $UR::VERSION;;
 
 # set up module
 use Carp;
@@ -797,7 +797,7 @@ sub create
     my $class = shift;
     my $obj = {@_};
     bless ($obj,$class);
-    weaken $obj->{'owner_id'} if (ref($obj->{'owner_id'}));
+   weaken $obj->{'owner_id'} if (ref($obj->{'owner_id'}));
 
     return $obj;
 }

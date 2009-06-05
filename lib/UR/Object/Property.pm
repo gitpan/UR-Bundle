@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Lingua::EN::Inflect;
 
-our $VERSION = '2.0';
+our $VERSION = $UR::VERSION;;
 
 =pod
 
@@ -47,6 +47,7 @@ our %NUMERIC_TYPES = (
         'NUMBER'  => 1,
         'FLOAT'   => 1,
 );
+
 sub is_numeric {
     my $self = shift;
 
@@ -59,7 +60,7 @@ sub is_numeric {
         
         
 
-sub create_object {
+sub _create_object {
     my $class = shift;
     my ($bx,%extra) = $class->define_boolexpr(@_);
     my %params = ($bx->params_list,%extra);
@@ -103,7 +104,7 @@ sub create_object {
         $plural_name = Lingua::EN::Inflect::PL($singular_name);
     }
 
-    return $class->SUPER::create_object(plural_name => $plural_name, singular_name => $singular_name, %params);
+    return $class->SUPER::_create_object(plural_name => $plural_name, singular_name => $singular_name, %params);
 }
 
 
@@ -236,7 +237,7 @@ sub _get_joins {
                 }            
                 my $join = pop @joins;
                 #my $where_rule = $join->{foreign_class}->define_boolexpr(@$where);                
-                my $where_rule = UR::BoolExpr->resolve_for_class_and_params($join->{foreign_class}, @$where);                
+                my $where_rule = UR::BoolExpr->resolve($join->{foreign_class}, @$where);                
                 my $id = $join->{id};
                 $id .= ' ' . $where_rule->id;
                 push @joins, { %$join, id => $id, where => $where };
@@ -266,7 +267,7 @@ sub _get_joins {
                 my $id = $source_class . '::' . $property_name;
                 if ($where) {
                     #my $where_rule = $foreign_class->define_boolexpr(@$where);
-                    my $where_rule = UR::BoolExpr->resolve_for_class_and_params($foreign_class, @$where);
+                    my $where_rule = UR::BoolExpr->resolve($foreign_class, @$where);
                     $id .= ' ' . $where_rule->id;
                 }
                 if (my $id_by = $self->id_by) { 

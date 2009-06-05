@@ -1,10 +1,12 @@
 package UR::Object;
+#sub define { shift->__define__(@_) }
 
 use warnings;
 use strict;
+
 require UR;
 
-use Scalar::Util qw(blessed);
+use Scalar::Util;
 
 our @ISA = ('UR::ModuleBase');
 our $VERSION = $UR::VERSION;;
@@ -12,8 +14,8 @@ our $VERSION = $UR::VERSION;;
 sub class { ref($_[0]) || $_[0] }
 
 sub __meta__  {
-    # for bootstrapping
     # subclasses set this specifically for efficiency
+    # the base class has a generic implementation for boostrapping
     my $class_name = shift;
     return $UR::Context::all_objects_loaded->{"UR::Object::Type"}{$class_name};
 }
@@ -32,21 +34,21 @@ sub __label_name__ {
 
 sub __display_name__ {
     my $self = shift;
-    my $context = shift;
+    my $in_context_of_related_object = shift;
     
     my $name = $self->id;
     $name =~ s/\t/ /g;
     return $name;
 
-    if (not $context) {
-        # no context.
+    if (not $in_context_of_related_object) {
+        # no in_context_of_related_object.
         # the object is identified globally
         return $self->label_name . ' ' . $name;
     }
-    elsif ($context eq ref($self)) {
+    elsif ($in_context_of_related_object eq ref($self)) {
         # the class is completely known
         # show only the core display name
-        # -> less text, more context
+        # -> less text, more in_context_of_related_object
         return $name
     }
     else {
@@ -60,18 +62,18 @@ sub __display_name__ {
 sub context {
     # For efficiency, all context switches update this value.
     # We will ultimately need to support objects knowing their context explicitly
-    # for things such as data maintenance operations.
+    # for things such as data maintenance operations.  TODO.
     $UR::Context::current;
 }
 
 sub define_boolexpr {
-    return UR::BoolExpr->resolve_for_class_and_params(@_);
+    return UR::BoolExpr->resolve(@_);
 }
 
 sub define_set {
     my $class = shift;
     $class = ref($class) || $class;
-    my $rule = UR::BoolExpr->resolve_for_class_and_params($class,@_);
+    my $rule = UR::BoolExpr->resolve($class,@_);
     my $set_class = $class . "::Set";
     return $set_class->get($rule->id);    
 }
@@ -90,8 +92,7 @@ sub create_iterator {
     }
   
     unless (Scalar::Util::blessed($filter)) {
-        #$filter = $class->define_boolexpr(@$filter)
-        $filter = UR::BoolExpr->resolve_for_class_and_params($class,@$filter)
+        $filter = UR::BoolExpr->resolve($class,@$filter)
     }
     
     my $iterator = UR::Object::Iterator->create_for_filter_rule($filter);
@@ -133,7 +134,7 @@ sub DESTROY {
     # the cache_size_highwater mark is a valid value
     if ($UR::Context::destroy_should_clean_up_all_objects_loaded) {
         my $class = ref($obj);
-        if ($obj->__meta__->is_meta_meta or $obj->changed) {
+        if ($obj->__meta__->is_meta_meta or $obj->__changes__) {
             my $obj_from_cache = delete $UR::Context::all_objects_loaded->{$class}{$obj->{id}};
             die "Object found in all_objects_loaded does not match destroyed ref/id! $obj/$obj->{id}!" unless $obj eq $obj_from_cache;
             $UR::Context::all_objects_loaded->{$class}{$obj->{id}} = $obj;
@@ -170,14 +171,14 @@ END {
 # For classes without a data source, then it will be dropped according to
 # the normal rules w/r/t the __get_serial (classes without data sources
 # normally are never dropped by the pruner)
-sub weaken {
+sub __weaken__ {
     my $self = $_[0];
     delete $self->{'__strengthened'};
     $self->{'__weakened'} = 1;
 }
 
 # Indicate this object should never be unloaded by the object cache pruner
-sub strengthen {
+sub __strengthen__ {
     my $self = $_[0];
     delete $self->{'__weakened'};
     $self->{'__strengthened'} = 1;
@@ -196,7 +197,7 @@ sub create {
     # #1 - The class specifies that we should call this other method (sub_classification_method_name)
     # to determine the correct subclass
     if (my $method_name = $class_meta->first_sub_classification_method_name) {
-        my($rule, %extra) = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, @_);
+        my($rule, %extra) = UR::BoolExpr->resolve_normalized($class, @_);
         my $sub_class_name = $class->$method_name(@_);
         if (defined($sub_class_name) and ($sub_class_name ne $class)) {
             # delegate to the sub-class to create the object
@@ -215,13 +216,13 @@ sub create {
     # Extract the value of that property from the rule to determine the subclass create() should 
     # really be called on
     if ($class_meta->is_abstract) {
-        my($rule, %extra) = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, @_);
+        my($rule, %extra) = UR::BoolExpr->resolve_normalized($class, @_);
 
         # Determine the correct subclass for this object
         # and delegate to that subclass.
         my $subclassify_by = $class_meta->subclassify_by;
         if ($subclassify_by) {
-            unless ($rule->specifies_value_for_property_name($subclassify_by)) {
+            unless ($rule->specifies_value_for($subclassify_by)) {
                 if ($class_meta->is_abstract) {
                     Carp::confess(
                         "Invalid parameters for $class create():"
@@ -230,13 +231,13 @@ sub create {
                     );               
                 }
                 else {
-                    ($rule, %extra) = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, $subclassify_by => $class, @_);
-                    unless ($rule and $rule->specifies_value_for_property_name($subclassify_by)) {
+                    ($rule, %extra) = UR::BoolExpr->resolve_normalized($class, $subclassify_by => $class, @_);
+                    unless ($rule and $rule->specifies_value_for($subclassify_by)) {
                         die "Error setting $subclassify_by to $class!";
                     }
                 } 
             }           
-            my $sub_class_name = $rule->specified_value_for_property_name($subclassify_by);
+            my $sub_class_name = $rule->value_for($subclassify_by);
             unless ($sub_class_name) {
                 die "no sub class found?!";
             }
@@ -276,10 +277,10 @@ sub create {
     }
 
     # Normal case... just make a rule out of the passed-in params
-    my $rule = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, @_);
+    my $rule = UR::BoolExpr->resolve_normalized($class, @_);
 
     # Process parameters.  We do this here instead of 
-    # waiting for create_object to do it so that we can ensure that
+    # waiting for _create_object to do it so that we can ensure that
     # we have an ID, and autogenerate an ID if necessary.
     my $params = $rule->legacy_params_hash;
     my $id = $params->{id};        
@@ -363,7 +364,7 @@ sub create {
     }
     
     # create the object.
-    my $self = $class->create_object(%default_values, %$params, @extra, id => $id);
+    my $self = $class->_create_object(%default_values, %$params, @extra, id => $id);
     unless ($self) {
         return;
     }
@@ -400,7 +401,7 @@ sub create {
     }
 
     if (%immutable_properties) {
-        my @problems = $self->invalid();
+        my @problems = $self->__errors__();
         if (@problems) {
             my @errors_fatal_to_construction;
             
@@ -420,13 +421,13 @@ sub create {
             if (@errors_fatal_to_construction) {
                 my $msg = 'Failed to create ' . $class . ' with invalid immutable properties:'
                     . join("\n", @errors_fatal_to_construction);
-                #$self->delete_object;
+                #$self->_delete_object;
                 #die $msg;
             }
         }
     }
     
-    $self->signal_change("create");
+    $self->__signal_change__("create");
     return $self;
 }
 
@@ -454,12 +455,12 @@ sub delete {
             }    
 
             # create ghost object
-            my $ghost = $self->ghost_class->create_object(id => $self->id, %ghost_params);
+            my $ghost = $self->ghost_class->_create_object(id => $self->id, %ghost_params);
             unless ($ghost) {
                 $DB::single = 1;
                 Carp::confess("Failed to constructe a deletion record for an unsync'd delete.");
             }
-            $ghost->signal_change("create");
+            $ghost->__signal_change__("create");
 
             for my $com (qw(db_committed db_saved_uncommitted)) {
                 $ghost->{$com} = $self->{$com}
@@ -467,8 +468,8 @@ sub delete {
             }
 
         }
-        $self->signal_change('delete');
-        $self->delete_object;
+        $self->__signal_change__('delete');
+        $self->_delete_object;
         return $self;
     }
     else {
@@ -476,7 +477,7 @@ sub delete {
     }
 }
 
-sub create_object {
+sub _create_object {
     my $class = shift;
  
     #my $params = { $class->define_bx(@_)->params_list };
@@ -485,7 +486,7 @@ sub create_object {
     my $id = $params->{id};
     unless (defined($id)) {
         Carp::confess(
-            "No ID specified (or incomplete id params) for $class create_object.  Params were:\n" 
+            "No ID specified (or incomplete id params) for $class _create_object.  Params were:\n" 
             . Dumper($params)
         );
     }
@@ -523,8 +524,8 @@ sub create_object {
         {
             $self->{'db_saved_uncommitted'} = { %$unsaved_data };
         }
-        $ghost->signal_change("delete");
-        $ghost->delete_object;
+        $ghost->__signal_change__("delete");
+        $ghost->_delete_object;
     }
 
     # Put the object in the master repository of objects for the application.
@@ -539,7 +540,7 @@ sub create_object {
     return $self;
 }
 
-sub delete_object {
+sub _delete_object {
     my $self = $_[0];
     my $class = $self->class;
     my $id = $self->id;
@@ -581,14 +582,14 @@ sub delete_object {
     return $self;
 }
 
-sub define {
+sub __define__ {
     # This is to "virtually load" things.
     # Simply assert they already existed externally, and act as though they were just loaded...
 
     my $class = shift;
     my $class_meta = $class->__meta__;    
     if (my $method_name = $class_meta->sub_classification_method_name) {
-        my($rule, %extra) = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class, @_);
+        my($rule, %extra) = UR::BoolExpr->resolve_normalized($class, @_);
         my $sub_class_name = $class->$method_name(@_);
         if ($sub_class_name ne $class) {
             # delegate to the sub-class to create the object
@@ -596,10 +597,10 @@ sub define {
         }
     }
 
-    my $self = $class->create_object(@_);
+    my $self = $class->_create_object(@_);
     return unless $self;
     $self->{db_committed} = { %$self };
-    $self->signal_change("load");
+    $self->__signal_change__("load");
     return $self;
 }
 
@@ -638,7 +639,7 @@ sub get {
         }
     }
     
-    my ($rule, @extra) = UR::BoolExpr->resolve_for_class_and_params($class,@_);        
+    my ($rule, @extra) = UR::BoolExpr->resolve($class,@_);        
     
     if (@extra) {
         # remove this and have the developer go to the datasource 
@@ -653,7 +654,7 @@ sub get {
     # This is here for bootstrapping reasons: we must be able to load class singletons
     # in order to have metadata for regular loading....
     if (!$rule->has_meta_options and ($class->isa("UR::Object::Type") or $class->isa("UR::Singleton") or $class->isa("UR::Value"))) {
-        my $normalized_rule = $rule->get_normalized_rule_equivalent;
+        my $normalized_rule = $rule->normalize;
         
         my @objects = $class->_load($normalized_rule);
         
@@ -753,7 +754,7 @@ sub property_diff {
     return $diff;
 }
 
-sub changed {
+sub __changes__ {
     # This is really never overridden in subclasses.
     # Return attributes for all changes.
     my ($self,$optional_property) = @_;
@@ -761,6 +762,10 @@ sub changed {
     return unless $self->{_change_count};
     #print "changes on $self! $self->{_change_count}\n";
     my $meta = $self->__meta__;
+    if (ref($meta) eq 'UR::DeletedRef') {
+        print Data::Dumper::Dumper($self,$meta);
+        Carp::confess("Meta is deleted for object requesting changes: $self\n");
+    }
     if (!$meta->is_transactional and !$meta->is_meta_meta) {
         return;
     }
@@ -799,7 +804,7 @@ sub changed {
 
 # This is the basis for software constraint checking.
 
-sub invalid {
+sub __errors__ {
     my ($self,@property_names) = @_;
 
     my $class_object = $self->__meta__;
@@ -994,7 +999,7 @@ sub add_observer {
 
 # TODO: move this into the context
 our $sig_depth = 0;
-sub signal_change {
+sub __signal_change__ {
     my ($self, $property, @data) = @_;
 
     my ($class,$id);
@@ -1013,7 +1018,7 @@ sub signal_change {
     }
 
     if ($UR::Context::Transaction::log_all_changes) {
-        # eventually all calls to signal_change will go directly here
+        # eventually all calls to __signal_change__ will go directly here
         UR::Context::Transaction->log_change($self, $class, $id, $property, @data);
     }
 
@@ -1070,7 +1075,7 @@ sub signal_change {
     #    monitor_id => \@check_ids,
     #);
 
-    #print STDOUT "fire signal_change: class $class id $id method $property data @data -> \n" . join("\n", map { "@$_" } @matches) . "\n";
+    #print STDOUT "fire __signal_change__: class $class id $id method $property data @data -> \n" . join("\n", map { "@$_" } @matches) . "\n";
 
     $sig_depth++;
     do {

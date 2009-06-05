@@ -174,7 +174,7 @@ sub _complete_filter {
 sub _fetch
 {
     my $self = shift;
-    my ($bool_expr, %extra) = UR::BoolExpr->create_from_filter_string(
+    my ($bool_expr, %extra) = UR::BoolExpr->resolve_for_string(
         $self->subject_class_name, 
         $self->_complete_filter, 
         $self->_hint_string
@@ -282,5 +282,5 @@ Overwrite the help_brief, help_synopsis and help_detail methods to provide speci
 
 =cut
 
-#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.3/lib/UR/Object/Command/FetchAndDo.pm $
-#$Id: FetchAndDo.pm 47381 2009-05-29 21:04:40Z ssmith $#
+#$HeadURL: svn+ssh://svn/srv/svn/gscpan/distro/ur-bundle/releases/UR-Bundle-0.4/lib/UR/Object/Command/FetchAndDo.pm $
+#$Id: FetchAndDo.pm 47408 2009-06-01 03:53:45Z ssmith $#

@@ -23,16 +23,16 @@ sub unload {
         # their database in the exact same state.  Everything else must
         # be reverted or deleted.
         return unless $self->{db_committed};
-        if ($self->changed) {
+        if ($self->__changes__) {
             #warn "NOT UNLOADING CHANGED OBJECT! $self $self->{id}\n";
             return;
         }
 
-        $self->signal_change('unload');
+        $self->__signal_change__('unload');
         if ($ENV{'UR_DEBUG_OBJECT_RELEASE'}) {
             print STDERR "MEM UNLOAD object $self class ",$self->class," id ",$self->id,"\n";
         }
-        $self->delete_object;
+        $self->_delete_object;
         return $self;
     }
     else {
@@ -87,7 +87,7 @@ sub is_loaded {
     }
 
     my $class = shift;
-    my $rule = UR::BoolExpr->resolve_normalized_rule_for_class_and_params($class,@_);
+    my $rule = UR::BoolExpr->resolve_normalized($class,@_);
     return $UR::Context::current->get_objects_for_class_and_rule($class,$rule,0);    
 }
 
@@ -180,15 +180,15 @@ sub validate_subscription
 {
     my ($self,$subscription_property) = @_;
 
-    Carp::confess("The create_object and delete_object signals are no longer emitted!") 
+    Carp::confess("The _create_object and _delete_object signals are no longer emitted!") 
         if defined($subscription_property) 
-            and ($subscription_property eq 'create_object' or $subscription_property eq 'delete_object');
+            and ($subscription_property eq '_create_object' or $subscription_property eq '_delete_object');
 
     # Undefined attributes indicate that the subscriber wants any changes at all to generate a callback.
     return 1 if (!defined($subscription_property));
 
     # All standard creation and destruction methods emit a signal.
-    return 1 if ($subscription_property =~ /^(create_object|delete_object|create|delete|commit|rollback|load|unload|load_external)$/);
+    return 1 if ($subscription_property =~ /^(_create_object|_delete_object|create|delete|commit|rollback|load|unload|load_external)$/);
 
     # A defined attribute in our property list indicates the caller wants callbacks from our properties.
     my $class_object = $self->__meta__;
@@ -233,7 +233,7 @@ sub cancel_change_subscription ($@)
     }
 
     # Handle global subscriptions.  Subscriptions to UR::Object affect all objects.
-    # This can be removed when the signal_change method uses inheritance.
+    # This can be removed when the __signal_change__ method uses inheritance.
 
     $class = undef if ($class eq __PACKAGE__);
 
@@ -349,7 +349,7 @@ sub preprocess_params {
 
         # get the rule object, which has the old params pre-cached
         my ($rule, @extra) = $class->can("define_boolexpr")->($class,@_);
-        my $normalized_rule = $rule->get_normalized_rule_equivalent;
+        my $normalized_rule = $rule->normalize;
         my $rule_params = $normalized_rule->legacy_params_hash;
 
         # catch only case where sql is passed in
